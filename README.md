@@ -1,4 +1,4 @@
-Yii-HybridAuth
+HybridAuth
 ==============
 
-Yii-HybridAuth
+HybridAuth
