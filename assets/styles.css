@@ -1,0 +1,8 @@
+ul.hybridauth-providerlist  {	
+	list-style-type: none;
+}
+
+ul.hybridauth-providerlist li {
+	float:left;
+	text-decoration: none;
+}
