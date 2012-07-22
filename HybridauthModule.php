@@ -4,6 +4,7 @@ class HybridauthModule extends CWebModule {
 
 	public $baseUrl;
 	public $providers;
+	public $withYiiUser;
 	private $_assetsUrl;
 	
 
@@ -58,7 +59,7 @@ class HybridauthModule extends CWebModule {
 	 * @return Hybrid_Provider_Adapter adapter or null if they are not logged in, or are logged in locally.
 	 */
 	public function getAdapter() {
-		return Yii::app()->session['hybridauth-adapter'];
+	//	return Yii::app()->session['hybridauth-adapter'];
 	}
 
 	/** 
@@ -67,7 +68,7 @@ class HybridauthModule extends CWebModule {
 	 * @param Hybrid_Provider_Adapter $adapter 
 	 */
 	public function setAdapter(Hybrid_Provider_Adapter $adapter) {
-		Yii::app()->session['hybridauth-adapter'] = $adapter;
+		//Yii::app()->session['hybridauth-adapter'] = $adapter;
 	}
 
 

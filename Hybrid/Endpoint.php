@@ -204,6 +204,7 @@ class Hybrid_Endpoint {
 
 	public static function authInit()
 	{
+
 		if ( ! Hybrid_Endpoint::$initDone) {
 			Hybrid_Endpoint::$initDone = TRUE;
 

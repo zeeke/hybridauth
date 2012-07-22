@@ -6,7 +6,7 @@ class RemoteUserIdentity extends CBaseUserIdentity {
 	public $userData;
 	public $username;
 	public $loginProvider;
-	public $loginProviderIdentity;
+	public $loginProviderIdentifier;
 	private $_adapter;
 
 	/**
@@ -38,12 +38,10 @@ class RemoteUserIdentity extends CBaseUserIdentity {
 		$adapter = $hybridauth->authenticate($this->loginProvider,$params);
 		if ($adapter->isUserConnected()) {
 			$this->_adapter = $adapter;
-			$this->loginProviderIdentity = $this->_adapter->getUserProfile()->identifier;
+			$this->loginProviderIdentifier = $this->_adapter->getUserProfile()->identifier;
 
-			$user = User::model()->find(
-				'loginProvider = ? AND loginProviderIdentity = ? ', array($this->loginProvider, $this->loginProviderIdentity)
-			);
-
+			$user = HaLogin::getUser($this->loginProvider, $this->loginProviderIdentifier);
+			
 			if ($user == null) {
 				$this->errorCode = self::ERROR_USERNAME_INVALID;
 			} else {

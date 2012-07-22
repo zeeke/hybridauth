@@ -10,19 +10,23 @@ class DefaultController extends Controller {
 	 * Public login action.  It swallows exceptions from Hybrid_Auth. Comment try..catch to bubble exceptions up. 
 	 */
 	public function actionLogin() {
-		try {
-			Yii::app()->session['hybridauth-ref'] = Yii::app()->request->urlReferrer;
+	//	try {
+			if (!isset(Yii::app()->session['hybridauth-ref'])) {
+				Yii::app()->session['hybridauth-ref'] = Yii::app()->request->urlReferrer;
+			}
 			$this->_doLogin();
-		} catch (Exception $e) {
-			Yii::app()->user->setFlash('hybridauth-error', "Something went wrong, did you cancel?");
-			$this->redirect(Yii::app()->session['hybridauth-ref'], true);
-		}
+	//	} catch (Exception $e) {
+	//		Yii::app()->user->setFlash('hybridauth-error', "Something went wrong, did you cancel?");
+	//		$this->redirect(Yii::app()->session['hybridauth-ref'], true);
+	//	}
 	}
 
 	/**
 	 * Main mehod to handle login attempts.  If the user passes authentication with their
 	 * chosen provider then it displays a form for them to choose their username and email.
 	 * The email address they choose is *not* verified.
+	 * 
+	 * If they are already logged in then it links the new provider to their account
 	 * 
 	 * @throws Exception if a provider isn't supplied, or it has non-alpha characters
 	 */
@@ -38,42 +42,78 @@ class DefaultController extends Controller {
 		$identity = new RemoteUserIdentity($_GET['provider']);
 		
 		if ($identity->authenticate()) {
-			// They have authenticated AND we have a user record for them already => Log them straight in
-			$adapter = $identity->getAdapter();
-			$this->module->setAdapter($adapter);
-			Yii::app()->user->login($identity, 0);
-			$this->redirect(Yii::app()->user->returnUrl);
-		} else if ($identity->errorCode == RemoteUserIdentity::ERROR_USERNAME_INVALID) {
-			// They have authenticated but we haven't seen them before.  Create a user record for them.
-			// and display a form to choose their username & email (we might not get it from the provider)
-			$user = new User;
-
-			if (isset($_POST['User'])) {
-				//Save the form
-				$user->attributes = $_POST['User'];
-				$user->loginProvider = $identity->loginProvider;
-				$user->loginProviderIdentity = $identity->loginProviderIdentity;
-
-				if ($user->validate() && $user->save()) {
-					$identity->id = $user->id;
-					$identity->username = $user->username;
-					$this->module->setAdapter($identity->getAdapter());
-					Yii::app()->user->login($identity, 0);
-					$this->redirect(Yii::app()->user->returnUrl);
-				}
+			// They have authenticated AND we have a user record associated with that provider
+			if (Yii::app()->user->isGuest) {
+				$this->_loginUser($identity);
 			} else {
-				//Display the form with some entries prefilled if we have the info.
-				if (isset($identity->userData->email)) {
-					$user->email = $identity->userData->email;
-					$email = explode('@', $user->email);
-					$user->username = $email[0];
-				}
+				//they shouldn't get here because they are already logged in AND have a record for
+				// that provider.  Just bounce them on
+				$this->redirect(Yii::app()->user->returnUrl);
 			}
+		} else if ($identity->errorCode == RemoteUserIdentity::ERROR_USERNAME_INVALID) {
+			// They have authenticated to their provider but we don't have a matching HaLogin entry
+			if (Yii::app()->user->isGuest) {
+ 				// They aren't logged in => display a form to choose their username & email 
+				// (we might not get it from the provider)
+				if ($this->module->withYiiUser == true) {
+					Yii::import('application.modules.user.models.*');
+				} else {
+					Yii::import('application.models.*');
+				}
 
-			$this->render('createUser', array(
-				'user' => $user,
-			));
+				$user = new User;
+				if (isset($_POST['User'])) {
+					//Save the form
+					$user->attributes = $_POST['User'];
+
+					if ($user->validate() && $user->save()) {
+						if ($this->module->withYiiUser == true) {
+							$profile = new Profile();
+							$profile->first_name='firstname';
+							$profile->last_name='lastname';
+							$profile->user_id=$user->id;
+							$profile->save();
+						}
+						
+						$identity->id = $user->id;
+						$identity->username = $user->username;
+						$this->_linkProvider($identity);
+						$this->_loginUser($identity);
+					} // } else { do nothing } => the form will get redisplayed
+				} else {
+					//Display the form with some entries prefilled if we have the info.
+					if (isset($identity->userData->email)) {
+						$user->email = $identity->userData->email;
+						$email = explode('@', $user->email);
+						$user->username = $email[0];
+					}
+				}
+
+				$this->render('createUser', array(
+					'user' => $user,
+				));
+			} else {
+				// They are already logged in, link their user account with new provider
+				$identity->id = Yii::app()->user->id;
+				$this->_linkProvider($identity);
+				$this->redirect(Yii::app()->session['hybridauth-ref']);
+				unset(Yii::app()->session['hybridauth-ref']);
+			}
 		}
+	}
+	
+	private function _linkProvider($identity) {
+		$haLogin = new HaLogin();
+		$haLogin->loginProviderIdentifier = $identity->loginProviderIdentifier;
+		$haLogin->loginProvider = $identity->loginProvider;
+		$haLogin->userId = $identity->id;
+		$haLogin->save();
+	}
+	
+	private function _loginUser($identity) {
+		$this->module->setAdapter($identity->getAdapter());
+		Yii::app()->user->login($identity, 0);
+		$this->redirect(Yii::app()->user->returnUrl);
 	}
 
 	/** 
@@ -85,5 +125,10 @@ class DefaultController extends Controller {
 		require dirname(__FILE__) . '/../Hybrid/Endpoint.php';
 		Hybrid_Endpoint::process();
 	}
-
+	
+	public function actionUnlink() {
+		$login = HaLogin::getLogin(Yii::app()->user->getid(),$_POST['hybridauth-unlinkprovider']);
+		$login->delete();
+		$this->redirect(Yii::app()->getRequest()->urlReferrer);
+	}
 }
