@@ -99,7 +99,7 @@ class HaLogin extends CActiveRecord
 		$criteria->compare('loginProvider',$loginProvider,true);
 		$criteria->compare('loginProviderIdentifier',$loginProviderIdentity,true);
 
-		$login = new CActiveDataProvider('HaLogins', array(
+		$login = new CActiveDataProvider('HaLogin', array(
 			'criteria'=>$criteria,
 		));
 		
@@ -117,7 +117,7 @@ class HaLogin extends CActiveRecord
 	public static function getLogins($userId) {
 		$criteria=new CDbCriteria;
 		$criteria->compare('userId',$userId,true);
-		$data= new CActiveDataProvider('HaLogins', array(
+		$data= new CActiveDataProvider('HaLogin', array(
 			'criteria'=>$criteria,
 		));
 		return $data->getData();
@@ -127,7 +127,7 @@ class HaLogin extends CActiveRecord
 		$criteria=new CDbCriteria;
 		$criteria->compare('userId',$userId,true);
 		$criteria->compare('loginProvider',$provider,true);
-		$data= new CActiveDataProvider('HaLogins', array(
+		$data= new CActiveDataProvider('HaLogin', array(
 			'criteria'=>$criteria,
 		));
 		$tmp = $data->getData();
