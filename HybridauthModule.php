@@ -6,6 +6,7 @@ class HybridauthModule extends CWebModule {
 	public $providers;
 	public $withYiiUser;
 	private $_assetsUrl;
+	private $_hybridAuth;
 	
 
 	public function init() {
@@ -16,7 +17,10 @@ class HybridauthModule extends CWebModule {
 			'hybridauth.models.*',
 			'hybridauth.components.*',
 		));
+		require dirname(__FILE__) . '/Hybrid/Auth.php';
+		$this->_hybridAuth = new Hybrid_Auth($this->getConfig());
 	}
+
 
 	public function beforeControllerAction($controller, $action) {
 		if (parent::beforeControllerAction($controller, $action)) {
@@ -46,7 +50,6 @@ class HybridauthModule extends CWebModule {
 	 * @return array
 	 */
 	public function getConfig() {
-		
 		return array(
 			'baseUrl' => $this->baseUrl,
 			'base_url' => $this->baseUrl . '/default/callback', // URL for Hybrid_Auth callback
@@ -54,23 +57,12 @@ class HybridauthModule extends CWebModule {
 		);
 	}
 	
-	/**
-	 * Get the Hybrid_Auth adapter that is supplied once someone has authenticated.
-	 * @return Hybrid_Provider_Adapter adapter or null if they are not logged in, or are logged in locally.
-	 */
-	public function getAdapter() {
-	//	return Yii::app()->session['hybridauth-adapter'];
-	}
-
 	/** 
-	 * Put the Hybrid_Provider_Adapter into the session so we don't need to generate it from the provider on each 
-	 * request.
-	 * @param Hybrid_Provider_Adapter $adapter 
+	 * Returns the Hybrid_Auth class.  See Hybrid_Auth docs (http://hybridauth.sourceforge.net/userguide.html)
+	 * for details of how to use this
+	 * @return Hybrid_Auth
 	 */
-	public function setAdapter(Hybrid_Provider_Adapter $adapter) {
-		//Yii::app()->session['hybridauth-adapter'] = $adapter;
+	public function getHybridAuth() {
+		return $this->_hybridAuth;
 	}
-
-
-
 }

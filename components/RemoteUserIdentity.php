@@ -8,12 +8,15 @@ class RemoteUserIdentity extends CBaseUserIdentity {
 	public $loginProvider;
 	public $loginProviderIdentifier;
 	private $_adapter;
+	private $_hybridAuth;
 
 	/**
-	 * @param string the provider you are using
+	 * @param string The provider you are using
+	 * @param Hybrid_Auth An instance of Hybrid_Auth 
 	 */
-	public function __construct($provider) {
+	public function __construct($provider,Hybrid_Auth $hybridAuth) {
 		$this->loginProvider = $provider;
+		$this->_hybridAuth = $hybridAuth;
 	}
 
 	/**
@@ -21,8 +24,6 @@ class RemoteUserIdentity extends CBaseUserIdentity {
 	 * @return boolean whether authentication succeeds.
 	 */
 	public function authenticate() {
-		require dirname(__FILE__) . '/../Hybrid/Auth.php';
-		
 		if (strtolower($this->loginProvider) == 'openid') {
 			if (!isset($_GET['openid-identity'])) {
 				throw new Exception('You chose OpenID but didn\'t provide an OpenID identifier');
@@ -33,9 +34,7 @@ class RemoteUserIdentity extends CBaseUserIdentity {
 			$params = array();
 		}
 		
-		$hybridauth = new Hybrid_Auth($this->_getConfig());
-
-		$adapter = $hybridauth->authenticate($this->loginProvider,$params);
+		$adapter = $this->_hybridAuth->authenticate($this->loginProvider,$params);
 		if ($adapter->isUserConnected()) {
 			$this->_adapter = $adapter;
 			$this->loginProviderIdentifier = $this->_adapter->getUserProfile()->identifier;
@@ -67,14 +66,6 @@ class RemoteUserIdentity extends CBaseUserIdentity {
 		return $this->username;
 	}
 	
-	/**
-	* Get config
-	* @return string rewritten configuration
-	*/
-	private function _getConfig() {
-		return Yii::app()->controller->module->getConfig();
-	}
-
 	/**
 	 * Returns the Adapter provided by Hybrid_Auth.  See http://hybridauth.sourceforge.net
 	 * for details on how to use this

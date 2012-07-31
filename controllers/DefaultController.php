@@ -10,19 +10,19 @@ class DefaultController extends Controller {
 	 * Public login action.  It swallows exceptions from Hybrid_Auth. Comment try..catch to bubble exceptions up. 
 	 */
 	public function actionLogin() {
-	//	try {
+		try {
 			if (!isset(Yii::app()->session['hybridauth-ref'])) {
 				Yii::app()->session['hybridauth-ref'] = Yii::app()->request->urlReferrer;
 			}
 			$this->_doLogin();
-	//	} catch (Exception $e) {
-	//		Yii::app()->user->setFlash('hybridauth-error', "Something went wrong, did you cancel?");
-	//		$this->redirect(Yii::app()->session['hybridauth-ref'], true);
-	//	}
+		} catch (Exception $e) {
+			Yii::app()->user->setFlash('hybridauth-error', "Something went wrong, did you cancel?");
+			$this->redirect(Yii::app()->session['hybridauth-ref'], true);
+		}
 	}
 
 	/**
-	 * Main mehod to handle login attempts.  If the user passes authentication with their
+	 * Main method to handle login attempts.  If the user passes authentication with their
 	 * chosen provider then it displays a form for them to choose their username and email.
 	 * The email address they choose is *not* verified.
 	 * 
@@ -39,7 +39,7 @@ class DefaultController extends Controller {
 		}
 		
 
-		$identity = new RemoteUserIdentity($_GET['provider']);
+		$identity = new RemoteUserIdentity($_GET['provider'],$this->module->getHybridauth());
 		
 		if ($identity->authenticate()) {
 			// They have authenticated AND we have a user record associated with that provider
@@ -111,7 +111,6 @@ class DefaultController extends Controller {
 	}
 	
 	private function _loginUser($identity) {
-		$this->module->setAdapter($identity->getAdapter());
 		Yii::app()->user->login($identity, 0);
 		$this->redirect(Yii::app()->user->returnUrl);
 	}
@@ -121,7 +120,6 @@ class DefaultController extends Controller {
 	 * Calls Hybrid_Auth to process login. 
 	 */
 	public function actionCallback() {
-		require dirname(__FILE__) . '/../Hybrid/Auth.php';
 		require dirname(__FILE__) . '/../Hybrid/Endpoint.php';
 		Hybrid_Endpoint::process();
 	}
